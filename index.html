@@ -268,6 +268,9 @@ function vHoy(app){const e=entradaHoy(),t=e.t,tot=progresoTotal(),g=progresoTota
     <p>${esc(e.tarea)}${t&&e.n>1?` <span class="muted">· día ${e.k} de ${e.n} del tema</span>`:''}</p>
     ${t&&!conContenido(t.id)?'<p class="muted" style="margin-top:6px">El material de este tema se está preparando. Mientras tanto repasa un tema que ya esté disponible.</p>':''}
     <div class="row" style="margin-top:14px">${t&&conContenido(t.id)?`<button class="btn acc" data-ir="${t.id}:apuntes">Estudiar</button><button class="btn ghost" data-ir="${t.id}:escuchar">Escuchar</button><button class="btn ghost" data-ir="${t.id}:test">Test del tema</button>`:`<button class="btn acc" data-sim="1">Hacer un simulacro</button>`}</div>
+    <div class="row" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)"><label class="muted" for="otro">¿Prefieres otro tema hoy?</label>
+      <select id="otro">${TEMARIO.map(x=>`<option value="${x.id}" ${conContenido(x.id)?'':'disabled'} ${t&&x.id===t.id&&conContenido(x.id)?'selected':''}>${x.bloque==='General'?'G':'E'}${x.num} · ${esc(x.titulo)}${conContenido(x.id)?'':' (en preparación)'}</option>`).join('')}</select>
+      <button class="btn ghost sm" data-otro>Estudiar este tema</button></div>
     ${refuerzo.length?`<p class="muted" style="margin-top:12px">Refuerzo sugerido: ${refuerzo.map(x=>`<a href="#" data-ir="${x.id}:test">${x.bloque==='General'?'G':'E'}${x.num}</a>`).join(', ')} (tu nota media está por debajo del 60 %).</p>`:''}</section>
   <section class="grid2">
     <div class="card"><h3>Tu progreso</h3><div style="display:grid;gap:12px;margin-top:12px">
@@ -284,6 +287,7 @@ function vHoy(app){const e=entradaHoy(),t=e.t,tot=progresoTotal(),g=progresoTota
   <section class="card flat"><p class="muted" style="font-size:.88rem">El primer ejercicio no puede empezar antes del 1 de marzo de 2027. Cuando la UGR publique la fecha real, cámbiala en la pestaña <a href="#" data-v="plan">Plan</a> y el calendario se recalcula solo.</p></section>`}
 document.addEventListener('click',e=>{const a=e.target.closest('[data-ir]');if(a){e.preventDefault();const[i,tb]=a.dataset.ir.split(':');tema=i;tab=tb;if(tb==='test'){iniciar({id:i,modo:'tema'});return}render()}
   const s=e.target.closest('[data-sim]');if(s){iniciar({modo:'sim'})}
+  if(e.target.closest('[data-otro]')){const v=$('#otro').value;if(conContenido(v)){tema=v;tab='apuntes';render()}}
   const c=e.target.closest('[data-ck]');if(c){S.checks[c.dataset.ck]=c.checked;marcar();guardar();render()}});
 
 function vTemario(app){const grupo=b=>TEMARIO.filter(t=>t.bloque===b).map(t=>{const[et,cl]=estadoTema(t.id);const ok=conContenido(t.id);
@@ -483,7 +487,7 @@ const planAb={};
 document.addEventListener('toggle',e=>{const k=e.target&&e.target.dataset&&e.target.dataset.k;if(k)planAb[k]=e.target.open},true);
 function vPlan(app){const P=plan(),h=hoyStr();
   const dia=e=>{const es=hoyStr(e.fecha),dom=e.fecha.getDay()===0,t=e.t;
-    return `<div class="day ${es===h?'hoy':''} ${es<h?'pas':''}"><span class="dt">${fmt(e.fecha)}</span><span>${t?`<b>${t.bloque==='General'?'G':'E'}${t.num}</b> ${esc(t.titulo)}<br><span class="muted" style="font-size:.88rem">${dom?'Día ligero: escucha el podcast del tema.':esc(e.tarea)}</span>`:`<b>Simulacro y repaso</b><br><span class="muted" style="font-size:.88rem">${esc(e.tarea)}</span>`}</span>${t&&!conContenido(t.id)?'<span class="pill">en preparación</span>':t?`<span class="pill ${estadoTema(t.id)[1]}">${estadoTema(t.id)[0]}</span>`:''}</div>`};
+    return `<div class="day ${es===h?'hoy':''} ${es<h?'pas':''}" ${t&&conContenido(t.id)?`data-ir="${t.id}:apuntes" style="cursor:pointer" title="Abrir este tema"`:''}><span class="dt">${fmt(e.fecha)}</span><span>${t?`<b>${t.bloque==='General'?'G':'E'}${t.num}</b> ${esc(t.titulo)}<br><span class="muted" style="font-size:.88rem">${dom?'Día ligero: escucha el podcast del tema.':esc(e.tarea)}</span>`:`<b>Simulacro y repaso</b><br><span class="muted" style="font-size:.88rem">${esc(e.tarea)}</span>`}</span>${t&&!conContenido(t.id)?'<span class="pill">en preparación</span>':t?`<span class="pill ${estadoTema(t.id)[1]}">${estadoTema(t.id)[0]}</span>`:''}</div>`};
   const hoyE=P.find(e=>hoyStr(e.fecha)===h)||P[0];
   const rango=a=>`${fmt(a[0].fecha,{day:'numeric',month:'short'})} – ${fmt(a[a.length-1].fecha,{day:'numeric',month:'short'})}`;
   const abierto=(k,def)=>k in planAb?planAb[k]:def;
