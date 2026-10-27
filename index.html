@@ -161,7 +161,7 @@ const FECHA_INICIO='2026-10-28';
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ico={hoy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>',temario:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2zM4 19V5"/></svg>',test:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>',plan:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',proceso:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7"/></svg>'};
-const VISTAS=[['hoy','Hoy'],['temario','Temario'],['test','Test'],['plan','Plan'],['proceso','Proceso']];
+const VISTAS=[['hoy','Hoy'],['temario','Temario'],['test','Test'],['plan','Plan'],['proceso','Resumen']];
 
 /* ---------- Estado y persistencia ---------- */
 let S={done:{},tests:[],fallos:{},checks:{},act:{},examDate:'2027-03-01',voz:{},upd:0};
@@ -465,7 +465,7 @@ function vPlan(app){const P=plan(),h=hoyStr();let html='',fase='',sem='';
   const rs=$('#reset');rs.onclick=()=>{if(rs.dataset.s){S={done:{},tests:[],fallos:{},checks:{},act:{},examDate:S.examDate,voz:S.voz,upd:0};guardar();toast('Progreso borrado');render()}else{rs.dataset.s=1;rs.textContent='Pulsa otra vez para confirmar'}}}
 
 /* ---------- Proceso ---------- */
-function vProceso(app){app.innerHTML=`<div><h1>El proceso, en claro</h1><p class="muted" style="margin-top:6px">Resumen de la convocatoria publicada en el BOE el 6 de octubre de 2026.</p></div>
+function vProceso(app){app.innerHTML=`<div><h1>Resumen del proceso</h1><p class="muted" style="margin-top:6px">Resumen de la convocatoria publicada en el BOE el 6 de octubre de 2026.</p></div>
   <section class="card"><dl class="kv">${PROC.resumen.map(r=>`<dt>${esc(r.k)}</dt><dd>${esc(r.v)}</dd>`).join('')}</dl></section>
   <section class="list"><h2>Los ejercicios</h2>${PROC.ejercicios.map(x=>`<div class="card"><div class="row" style="justify-content:space-between"><h3>${esc(x.n)}</h3><span class="pill">${esc(x.pts)}</span></div><p style="margin-top:6px">${esc(x.d)}</p></div>`).join('')}</section>
   <section class="card"><h2>Cómo se puntúa el primer ejercicio</h2><div class="md">${PROC.puntuacion.map(p=>`<p>${esc(p)}</p>`).join('')}</div></section>
