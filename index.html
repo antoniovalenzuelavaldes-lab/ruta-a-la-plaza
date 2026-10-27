@@ -450,14 +450,22 @@ function vResultado(app){const r=T.r,n=T.qs.length;const nota40=Math.max(0,r.npp
   app.onclick=e=>{if(e.target.closest('[data-again]')){iniciar({id:T.id,modo:T.modo})}
     if(e.target.closest('[data-fallos]')){iniciar({modo:'fallos'})}
     if(e.target.closest('[data-fin]')){T=null;render()}}}
+function resultados(){const med=b=>{const v=TEMARIO.filter(t=>t.bloque===b&&conContenido(t.id)).map(t=>dominio(t.id)).filter(x=>x!=null);return v.length?v.reduce((a,x)=>a+x,0)/v.length:null};
+  const fila=t=>{const ts=testsDe(t.id),l=ts[ts.length-1],mj=ts.length?Math.max(...ts.map(x=>x.pct)):null,[et,cl]=estadoTema(t.id);
+    return `<div class="card" style="padding:12px;display:grid;gap:8px"><div class="row" style="justify-content:space-between;align-items:start"><span><b>${t.bloque==='General'?'G':'E'}${t.num}</b> ${esc(t.titulo)}</span><span class="pill ${cl}">${et}</span></div>
+    ${l?`<div class="row mono" style="font-size:.85rem;gap:16px"><span>Último: ${l.ok}/${l.n} · ${l.pct.toFixed(0)} % neto</span><span>Mejor: ${mj.toFixed(0)} %</span><span>${ts.length} intento${ts.length>1?'s':''}</span></div>${barra(Math.max(0,l.pct)/100)}`:'<p class="muted" style="font-size:.9rem">Todavía no has hecho este test.</p>'}
+    <div><button class="btn ghost sm" data-rt="${t.id}">${l?'Repetir test':'Hacer test'}</button></div></div>`};
+  const bloque=b=>{const m=med(b);const ts=TEMARIO.filter(t=>t.bloque===b&&conContenido(t.id));return `<div class="row" style="justify-content:space-between"><h3>Bloque ${b==='General'?'general':'específico'}</h3><span class="mono">${m==null?'sin datos':'media '+m.toFixed(0)+' %'}</span></div>${ts.length?ts.map(fila).join(''):'<p class="muted">Todavía no hay temas disponibles en este bloque.</p>'}`};
+  return `<section class="list"><h2>Mis resultados</h2><p class="muted" style="font-size:.9rem">El porcentaje es neto: cada fallo resta 0,25 aciertos. Con un 75 % o más en los últimos tests, el tema pasa a «dominado».</p>${bloque('General')}${bloque('Específico')}</section>`}
 function vTestMenu(app){const n=Object.keys(S.fallos).length,tot=todasPreguntas().length;
   app.innerHTML=`<div><h1>Test</h1><p class="muted" style="margin-top:6px">${tot} preguntas disponibles. Se corrigen como en el examen: un fallo resta 0,25 y lo que dejas en blanco no resta.</p></div>
   <section class="grid2"><div class="card"><h3>Simulacro</h3><p class="muted" style="margin:6px 0 12px">Hasta 100 preguntas mezcladas de todos los temas, con cronómetro de 100 minutos y corrección al final. Cuando haya más material se parecerá más al examen real.</p><button class="btn acc" data-sim="1">Empezar simulacro</button></div>
   <div class="card"><h3>Repaso de fallos</h3><p class="muted" style="margin:6px 0 12px">${n?`Tienes ${n} preguntas falladas guardadas. Acertarlas las saca de la lista.`:'Aún no tienes fallos guardados.'}</p><button class="btn" data-fb ${n?'':'disabled'}>Repasar fallos</button></div>
   <div class="card"><h3>Bloque general</h3><p class="muted" style="margin:6px 0 12px">50 preguntas mezcladas de los temas generales.</p><button class="btn ghost" data-bl="General">Empezar</button></div>
   <div class="card"><h3>Modo voz</h3><p class="muted" style="margin:6px 0 12px">Te leo cada pregunta y sus opciones en voz alta; contestas tocando A, B, C o D y te explico la respuesta. Ideal para el coche o para andar. Elige un tema abajo.</p>
-  <div class="row">${Object.values(TEMAS).map(t=>`<button class="btn ghost sm" data-vz="${t.id}">${t.bloque==='General'?'G':'E'}${t.num}</button>`).join('')}</div></div></section>`;
-  app.onclick=e=>{if(e.target.closest('[data-fb]'))iniciar({modo:'fallos'});const b=e.target.closest('[data-bl]');if(b)iniciar({id:b.dataset.bl,modo:'bloque'});const v=e.target.closest('[data-vz]');if(v)iniciar({id:v.dataset.vz,modo:'voz'})}}
+  <div class="row">${Object.values(TEMAS).map(t=>`<button class="btn ghost sm" data-vz="${t.id}">${t.bloque==='General'?'G':'E'}${t.num}</button>`).join('')}</div></div></section>
+  ${resultados()}`;
+  app.onclick=e=>{if(e.target.closest('[data-fb]'))iniciar({modo:'fallos'});const rt=e.target.closest('[data-rt]');if(rt)iniciar({id:rt.dataset.rt,modo:'tema'});const b=e.target.closest('[data-bl]');if(b)iniciar({id:b.dataset.bl,modo:'bloque'});const v=e.target.closest('[data-vz]');if(v)iniciar({id:v.dataset.vz,modo:'voz'})}}
 
 
 async function peticiones(){const box=$('#pet');if(!box||!sb)return;
