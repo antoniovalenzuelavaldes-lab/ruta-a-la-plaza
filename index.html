@@ -48,7 +48,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
   .nav-b button svg{width:22px;height:22px}
   .nav-b button[aria-current="page"]{color:var(--accent);background:var(--surface2)}
 }
-main{padding-top:22px;display:grid;gap:22px}
+main{padding-top:22px;display:grid;gap:22px;grid-template-columns:minmax(0,1fr)}
+select{min-width:0}
+#otro{width:100%;flex:1 1 100%}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
 .card.flat{background:transparent}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
@@ -171,7 +173,7 @@ const FECHA_INICIO='2026-10-28';
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ico={hoy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>',temario:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2zM4 19V5"/></svg>',test:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>',plan:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',proceso:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7"/></svg>'};
-const VISTAS=[['hoy','Hoy'],['temario','Temario'],['test','Test'],['plan','Plan'],['proceso','Resumen']];
+const VISTAS=[['hoy','Hoy'],['temario','Temario'],['test','Test'],['plan','Plan General'],['proceso','Resumen']];
 
 /* ---------- Estado y persistencia ---------- */
 let S={done:{},tests:[],fallos:{},checks:{},act:{},examDate:'2027-03-01',voz:{},upd:0};
@@ -284,7 +286,7 @@ function vHoy(app){const e=entradaHoy(),t=e.t,tot=progresoTotal(),g=progresoTota
   </section>
   ${sb&&!usuario?'<section class="card" style="border-left:6px solid var(--pine)"><h3>Guarda tu progreso</h3><p class="muted" style="margin:6px 0 10px">Entra con tu correo y no perderás nada, ni cambiando de móvil, iPad u ordenador.</p><button class="btn acc sm" data-v="plan">Entrar con mi correo</button></section>':''}
   ${sb&&usuario?'<section class="card flat"><p class="muted" style="font-size:.9rem">¿Echas algo en falta, como más exámenes u otro temario? <a href="#" data-v="proceso">Pídeselo a Claude</a> en la pestaña Resumen.</p></section>':''}
-  <section class="card flat"><p class="muted" style="font-size:.88rem">El primer ejercicio no puede empezar antes del 1 de marzo de 2027. Cuando la UGR publique la fecha real, cámbiala en la pestaña <a href="#" data-v="plan">Plan</a> y el calendario se recalcula solo.</p></section>`}
+  <section class="card flat"><p class="muted" style="font-size:.88rem">El primer ejercicio no puede empezar antes del 1 de marzo de 2027. Cuando la UGR publique la fecha real, cámbiala en la pestaña <a href="#" data-v="plan">Plan General</a> y el calendario se recalcula solo.</p></section>`}
 document.addEventListener('click',e=>{const a=e.target.closest('[data-ir]');if(a){e.preventDefault();const[i,tb]=a.dataset.ir.split(':');tema=i;tab=tb;if(tb==='test'){iniciar({id:i,modo:'tema'});return}render()}
   const s=e.target.closest('[data-sim]');if(s){iniciar({modo:'sim'})}
   if(e.target.closest('[data-otro]')){const v=$('#otro').value;if(conContenido(v)){tema=v;tab='apuntes';render()}}
@@ -473,7 +475,7 @@ function vTestMenu(app){const n=Object.keys(S.fallos).length,tot=todasPreguntas(
 
 
 async function peticiones(){const box=$('#pet');if(!box||!sb)return;
-  if(!usuario){box.innerHTML='<h2>Pide algo a Claude</h2><p class="muted" style="margin-top:6px">Entra con tu correo (pestaña Plan) para pedir más exámenes, otro temario o cualquier cosa que eches en falta.</p>';return}
+  if(!usuario){box.innerHTML='<h2>Pide algo a Claude</h2><p class="muted" style="margin-top:6px">Entra con tu correo (pestaña Plan General) para pedir más exámenes, otro temario o cualquier cosa que eches en falta.</p>';return}
   box.innerHTML=`<h2>Pide algo a Claude</h2><p class="muted" style="margin:6px 0 10px">Cuéntalo con tus palabras: «quiero más exámenes del tema 3», «busca otro temario», «no entiendo el tema 4»… Queda como «pendiente» hasta que se resuelva y la respuesta aparecerá aquí. No es inmediato. Cuando envíes una petición, avisa también a quien te ayuda con la preparación para que la vea.</p>
   <textarea id="pt" rows="3" maxlength="1000" placeholder="¿Qué necesitas?" style="width:100%;font:inherit;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)"></textarea>
   <div class="row" style="margin-top:8px"><button class="btn acc sm" id="penv">Enviar</button></div><div id="plist" style="margin-top:14px;display:grid;gap:8px"></div>`;
