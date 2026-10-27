@@ -470,7 +470,7 @@ function vTestMenu(app){const n=Object.keys(S.fallos).length,tot=todasPreguntas(
 
 async function peticiones(){const box=$('#pet');if(!box||!sb)return;
   if(!usuario){box.innerHTML='<h2>Pide algo a Claude</h2><p class="muted" style="margin-top:6px">Entra con tu correo (pestaña Plan) para pedir más exámenes, otro temario o cualquier cosa que eches en falta.</p>';return}
-  box.innerHTML=`<h2>Pide algo a Claude</h2><p class="muted" style="margin:6px 0 10px">Cuéntalo con tus palabras: «quiero más exámenes del tema 3», «busca otro temario», «no entiendo el tema 4»… Se prepara y te contestamos aquí. No es inmediato: puede tardar unos días.</p>
+  box.innerHTML=`<h2>Pide algo a Claude</h2><p class="muted" style="margin:6px 0 10px">Cuéntalo con tus palabras: «quiero más exámenes del tema 3», «busca otro temario», «no entiendo el tema 4»… Queda como «pendiente» hasta que se resuelva y la respuesta aparecerá aquí. No es inmediato. Cuando envíes una petición, avisa también a quien te ayuda con la preparación para que la vea.</p>
   <textarea id="pt" rows="3" maxlength="1000" placeholder="¿Qué necesitas?" style="width:100%;font:inherit;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)"></textarea>
   <div class="row" style="margin-top:8px"><button class="btn acc sm" id="penv">Enviar</button></div><div id="plist" style="margin-top:14px;display:grid;gap:8px"></div>`;
   const pintar=async()=>{const{data}=await sb.from('peticiones').select('*').order('creada',{ascending:false}).limit(20);
