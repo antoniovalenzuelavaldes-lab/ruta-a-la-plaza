@@ -173,7 +173,7 @@ const FECHA_INICIO='2026-10-28';
 const $=(s,r=document)=>r.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ico={hoy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>',temario:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2zM4 19V5"/></svg>',test:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>',plan:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',proceso:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7"/></svg>'};
-const VISTAS=[['hoy','Hoy'],['temario','Temario'],['test','Test'],['plan','Plan General'],['proceso','Resumen']];
+const VISTAS=[['hoy','Hoy'],['temario','Temario'],['test','Test'],['plan','Plan'],['proceso','Resumen']];
 
 /* ---------- Estado y persistencia ---------- */
 let S={done:{},tests:[],fallos:{},checks:{},act:{},examDate:'2027-03-01',voz:{},upd:0};
@@ -286,7 +286,7 @@ function vHoy(app){const e=entradaHoy(),t=e.t,tot=progresoTotal(),g=progresoTota
   </section>
   ${sb&&!usuario?'<section class="card" style="border-left:6px solid var(--pine)"><h3>Guarda tu progreso</h3><p class="muted" style="margin:6px 0 10px">Entra con tu correo y no perderás nada, ni cambiando de móvil, iPad u ordenador.</p><button class="btn acc sm" data-v="plan">Entrar con mi correo</button></section>':''}
   ${sb&&usuario?'<section class="card flat"><p class="muted" style="font-size:.9rem">¿Echas algo en falta, como más exámenes u otro temario? <a href="#" data-v="proceso">Pídeselo a Claude</a> en la pestaña Resumen.</p></section>':''}
-  <section class="card flat"><p class="muted" style="font-size:.88rem">El primer ejercicio no puede empezar antes del 1 de marzo de 2027. Cuando la UGR publique la fecha real, cámbiala en la pestaña <a href="#" data-v="plan">Plan General</a> y el calendario se recalcula solo.</p></section>`}
+  <section class="card flat"><p class="muted" style="font-size:.88rem">El primer ejercicio no puede empezar antes del 1 de marzo de 2027. Cuando la UGR publique la fecha real, cámbiala en la pestaña <a href="#" data-v="plan">Plan</a> y el calendario se recalcula solo.</p></section>`}
 document.addEventListener('click',e=>{const a=e.target.closest('[data-ir]');if(a){e.preventDefault();const[i,tb]=a.dataset.ir.split(':');tema=i;tab=tb;if(tb==='test'){iniciar({id:i,modo:'tema'});return}render()}
   const s=e.target.closest('[data-sim]');if(s){iniciar({modo:'sim'})}
   if(e.target.closest('[data-otro]')){const v=$('#otro').value;if(conContenido(v)){tema=v;tab='apuntes';render()}}
@@ -414,19 +414,22 @@ document.addEventListener('change',e=>{if(e.target.matches('[data-vsel]')){S.voz
 const mezcla=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 function todasPreguntas(){const o=[];Object.values(TEMAS).forEach(t=>t.preguntas.forEach((p,i)=>o.push({...p,id:t.id+':'+i,tema:t.id})));return o}
 function prepara(p){const orden=mezcla([0,1,2,3]);return {...p,opts:orden.map(i=>p.o[i]),corr:orden.indexOf(p.c)}}
-function iniciar({id,modo}){let qs;const all=todasPreguntas();
+function iniciar({id,modo,ids}){let qs;const all=todasPreguntas();
   if(modo==='tema'||modo==='voz'){qs=all.filter(p=>p.tema===id);if(modo==='voz')qs=mezcla(qs).slice(0,10)}
-  else if(modo==='sim'){qs=mezcla(all).slice(0,100)}
+  else if(modo==='sim'){const blq=p=>TEMARIO.find(t=>t.id===p.tema).bloque;/* ~30 % general y ~70 % específico, como en el examen de 2025; si faltan específicas se rellena con generales */
+    const gen=mezcla(all.filter(p=>blq(p)==='General')),esp=mezcla(all.filter(p=>blq(p)==='Específico'));
+    const nEsp=Math.min(esp.length,70),nGen=Math.min(gen.length,100-nEsp);qs=[...gen.slice(0,nGen),...esp.slice(0,nEsp)]}
+  else if(modo==='ids'){qs=all.filter(p=>(ids||[]).includes(p.id))}
   else if(modo==='fallos'){qs=all.filter(p=>S.fallos[p.id])}
   else if(modo==='bloque'){qs=mezcla(all.filter(p=>TEMARIO.find(t=>t.id===p.tema).bloque===id)).slice(0,50)}
   if(!qs||!qs.length){toast('No hay preguntas para este modo todavía');return}
-  T={modo,id:id||modo,qs:mezcla(qs).map(prepara),i:0,res:[],ini:Date.now(),fin:false,fb:false};render();if(modo==='voz')leePregunta();if(modo==='sim')cron()}
+  T={modo,id:id||modo,ids,wrong:[],qs:mezcla(qs).map(prepara),i:0,res:[],ini:Date.now(),fin:false,fb:false};render();if(modo==='voz')leePregunta();if(modo==='sim')cron()}
 let crT=null;function cron(){clearInterval(crT);crT=setInterval(()=>{const e=$('#crono');if(!T||T.fin||!e){clearInterval(crT);return}const r=Math.max(0,6000-Math.floor((Date.now()-T.ini)/1000));e.textContent=Math.floor(r/60)+':'+String(r%60).padStart(2,'0');if(!r)terminar()},1000)}
 function leePregunta(){if(!TTS||T.modo!=='voz')return;callar();const q=T.qs[T.i];
   hablar(`Pregunta ${T.i+1}. ${q.q}`,'A',()=>{let k=0;const L='ABCD';const next=()=>{if(!T||T.modo!=='voz'||T.fb)return;if(k<4)hablar(`${L[k]}. ${q.opts[k]}`,'A',()=>{k++;next()});else escucharRespuesta()};next()})}
 function vTest(app){if(T.fin)return vResultado(app);const q=T.qs[T.i],sim=T.modo==='sim',r=T.res[T.i];const L='ABCD';
   app.innerHTML=`<div class="q-head"><button class="btn ghost sm" data-salir>← Salir</button><span class="mono">${T.i+1} / ${T.qs.length}</span>${sim?'<span class="chip" id="crono">100:00</span>':''}${T.modo==='voz'?'<button class="btn ghost sm" data-repite>🔊 Repetir</button><button class="btn ghost sm" data-mic>🎤 Responder</button>':''}</div>${barra((T.i)/T.qs.length,'acc')}
-  <div class="card"><p class="eyebrow">${esc(TEMARIO.find(t=>t.id===q.tema).titulo)}</p><p class="q">${esc(q.q)}</p>
+  <div class="card"><p class="eyebrow">${esc(TEMARIO.find(t=>t.id===q.tema).titulo)}${q.oficial?` <span class="pill ok" style="margin-left:6px">Examen ${esc(q.oficial)}</span>`:''}</p><p class="q">${esc(q.q)}</p>
   ${q.opts.map((o,i)=>{let c='';if(T.fb&&!sim){if(i===q.corr)c='right';else if(r&&r.sel===i)c='wrong'}else if(r&&r.sel===i)c='sel';return `<button class="opt ${c}" data-o="${i}" ${T.fb&&!sim?'disabled':''}><span class="l">${L[i]}</span><span>${esc(o)}</span></button>`}).join('')}
   ${T.fb&&!sim?`<div class="fb ${r.sel===q.corr?'ok':'ko'}"><b>${r.sel===q.corr?'Correcto.':r.sel==null?'En blanco.':'Incorrecto.'}</b> La respuesta es ${L[q.corr]}. ${esc(q.e)} <span class="muted">(${esc(q.r)})</span></div>`:''}
   <div class="row" style="margin-top:8px">${!T.fb||sim?`<button class="btn ghost sm" data-blank>No lo sé (en blanco)</button>`:''}${T.fb&&!sim||sim&&r?`<button class="btn acc" data-sig>${T.i===T.qs.length-1?'Terminar':'Siguiente'}</button>`:''}${sim&&T.i>0?'<button class="btn ghost sm" data-ant>Anterior</button>':''}</div></div>`;
@@ -444,7 +447,7 @@ function responde(sel){const q=T.qs[T.i],sim=T.modo==='sim';T.res[T.i]={sel};cal
   if(ok){if(S.fallos[q.id]&&T.modo==='fallos')delete S.fallos[q.id]}else if(sel!=null)S.fallos[q.id]=1;
   render();if(T.modo==='voz'){hablar(ok?'Correcto.':sel==null?'En blanco.':'Incorrecto.','A',()=>{hablar(`La respuesta correcta es ${'ABCD'[q.corr]}: ${q.opts[q.corr]}. ${q.e} Di siguiente para continuar.`,'A',()=>escucharOrden())})}}
 function sig(){if(T.i>=T.qs.length-1){terminar();return}T.i++;T.fb=false;render();if(T.modo==='voz')leePregunta()}
-function terminar(){clearInterval(crT);callar();let ok=0,ko=0,bl=0;T.qs.forEach((q,i)=>{const r=T.res[i];if(!r||r.sel==null)bl++;else if(r.sel===q.corr){ok++;if(T.modo==='sim'&&S.fallos[q.id])delete S.fallos[q.id]}else{ko++;S.fallos[q.id]=1}});
+function terminar(){clearInterval(crT);callar();let ok=0,ko=0,bl=0;T.qs.forEach((q,i)=>{const r=T.res[i];if(!r||r.sel==null)bl++;else if(r.sel===q.corr){ok++;if(T.modo==='sim'&&S.fallos[q.id])delete S.fallos[q.id]}else{ko++;S.fallos[q.id]=1;T.wrong.push(q.id)}});
   const npp=ok-ko/PEN,pct=npp/T.qs.length*100;T.r={ok,ko,bl,npp,pct};
   S.tests.push({t:T.id,ts:Date.now(),n:T.qs.length,ok,ko,bl,npp,pct});marcar();guardar();T.fin=true;render()}
 function vResultado(app){const r=T.r,n=T.qs.length;const nota40=Math.max(0,r.npp)/n*40;
@@ -452,8 +455,9 @@ function vResultado(app){const r=T.r,n=T.qs.length;const nota40=Math.max(0,r.npp
   app.innerHTML=`<div><p class="eyebrow">Resultado</p><h1>${r.ok} de ${n} aciertos</h1><p class="quote muted" style="margin-top:8px">${msg}</p></div>
   <section class="grid2"><div class="card"><dl class="kv"><dt>Aciertos</dt><dd class="mono">${r.ok}</dd><dt>Fallos</dt><dd class="mono">${r.ko}</dd><dt>En blanco</dt><dd class="mono">${r.bl}</dd><dt>Preguntas puntuables</dt><dd class="mono">${r.npp.toFixed(3)}</dd><dt>Porcentaje neto</dt><dd class="mono">${r.pct.toFixed(1)} %</dd></dl></div>
   <div class="card"><h3>¿Y en el examen real?</h3><p class="muted" style="margin-top:6px">Con este resultado, tus preguntas puntuables serían ${r.npp.toFixed(2)} sobre ${n}. Si lo escalas a 100 preguntas son ≈ ${(r.npp/n*100).toFixed(1)}. La nota de corte mínima es el 35 % de las preguntas válidas y sube si los mejores sacan mucho. Apunta a un 75 % neto o más.</p></div></section>
-  <div class="row"><button class="btn acc" data-fallos>Repasar mis fallos</button><button class="btn ghost" data-again>Repetir</button><button class="btn ghost" data-fin>Volver</button></div>`;
-  app.onclick=e=>{if(e.target.closest('[data-again]')){iniciar({id:T.id,modo:T.modo})}
+  <div class="row">${r.ko>0?'<button class="btn acc" data-fint>Repasar los fallos de este intento</button>':''}<button class="btn ${r.ko>0?'ghost':'acc'}" data-fallos>Repasar todos mis fallos</button><button class="btn ghost" data-again>Repetir</button><button class="btn ghost" data-fin>Volver</button></div>`;
+  app.onclick=e=>{if(e.target.closest('[data-again]')){iniciar({id:T.id,modo:T.modo,ids:T.ids})}
+    if(e.target.closest('[data-fint]')){iniciar({id:'fallos',modo:'ids',ids:T.wrong})}
     if(e.target.closest('[data-fallos]')){iniciar({modo:'fallos'})}
     if(e.target.closest('[data-fin]')){T=null;render()}}}
 function resultados(){const med=b=>{const v=TEMARIO.filter(t=>t.bloque===b&&conContenido(t.id)).map(t=>dominio(t.id)).filter(x=>x!=null);return v.length?v.reduce((a,x)=>a+x,0)/v.length:null};
@@ -465,7 +469,7 @@ function resultados(){const med=b=>{const v=TEMARIO.filter(t=>t.bloque===b&&conC
   return `<section class="list"><h2>Mis resultados</h2><p class="muted" style="font-size:.9rem">El porcentaje es neto: cada fallo resta 0,25 aciertos. Con un 75 % o más en los últimos tests, el tema pasa a «dominado».</p>${bloque('General')}${bloque('Específico')}</section>`}
 function vTestMenu(app){const n=Object.keys(S.fallos).length,tot=todasPreguntas().length;
   app.innerHTML=`<div><h1>Test</h1><p class="muted" style="margin-top:6px">${tot} preguntas disponibles. Se corrigen como en el examen: un fallo resta 0,25 y lo que dejas en blanco no resta.</p></div>
-  <section class="grid2"><div class="card"><h3>Simulacro</h3><p class="muted" style="margin:6px 0 12px">Hasta 100 preguntas mezcladas de todos los temas, con cronómetro de 100 minutos y corrección al final. Cuando haya más material se parecerá más al examen real.</p><button class="btn acc" data-sim="1">Empezar simulacro</button></div>
+  <section class="grid2"><div class="card"><h3>Simulacro</h3><p class="muted" style="margin:6px 0 12px">Hasta 100 preguntas con el reparto del último examen de la escala (unas 30 del bloque general y 70 del específico), cronómetro de 100 minutos y corrección al final. Se parecerá más al examen real cuando estén todos los temas.</p><button class="btn acc" data-sim="1">Empezar simulacro</button></div>
   <div class="card"><h3>Repaso de fallos</h3><p class="muted" style="margin:6px 0 12px">${n?`Tienes ${n} preguntas falladas guardadas. Acertarlas las saca de la lista.`:'Aún no tienes fallos guardados.'}</p><button class="btn" data-fb ${n?'':'disabled'}>Repasar fallos</button></div>
   <div class="card"><h3>Bloque general</h3><p class="muted" style="margin:6px 0 12px">50 preguntas mezcladas de los temas generales.</p><button class="btn ghost" data-bl="General">Empezar</button></div>
   <div class="card"><h3>Modo voz</h3><p class="muted" style="margin:6px 0 12px">Te leo cada pregunta y sus opciones en voz alta; contestas tocando A, B, C o D y te explico la respuesta. Ideal para el coche o para andar. Elige un tema abajo.</p>
@@ -475,7 +479,7 @@ function vTestMenu(app){const n=Object.keys(S.fallos).length,tot=todasPreguntas(
 
 
 async function peticiones(){const box=$('#pet');if(!box||!sb)return;
-  if(!usuario){box.innerHTML='<h2>Pide algo a Claude</h2><p class="muted" style="margin-top:6px">Entra con tu correo (pestaña Plan General) para pedir más exámenes, otro temario o cualquier cosa que eches en falta.</p>';return}
+  if(!usuario){box.innerHTML='<h2>Pide algo a Claude</h2><p class="muted" style="margin-top:6px">Entra con tu correo (pestaña Plan) para pedir más exámenes, otro temario o cualquier cosa que eches en falta.</p>';return}
   box.innerHTML=`<h2>Pide algo a Claude</h2><p class="muted" style="margin:6px 0 10px">Cuéntalo con tus palabras: «quiero más exámenes del tema 3», «busca otro temario», «no entiendo el tema 4»… Queda como «pendiente» hasta que se resuelva y la respuesta aparecerá aquí. No es inmediato. Cuando envíes una petición, avisa también a quien te ayuda con la preparación para que la vea.</p>
   <textarea id="pt" rows="3" maxlength="1000" placeholder="¿Qué necesitas?" style="width:100%;font:inherit;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)"></textarea>
   <div class="row" style="margin-top:8px"><button class="btn acc sm" id="penv">Enviar</button></div><div id="plist" style="margin-top:14px;display:grid;gap:8px"></div>`;
