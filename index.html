@@ -126,6 +126,16 @@ details.sec .md{padding:0 16px 14px}
 .day .dt{font-family:var(--f-mono);font-size:.82rem;font-weight:600}
 @media (max-width:719px){.day{grid-template-columns:62px 1fr}.day .pill{grid-column:2}}
 .phase{padding:10px 14px;border-radius:10px;background:var(--ink);color:var(--bg);font-family:var(--f-display);font-weight:700;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+details.fase>summary,details.sub>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+details.fase>summary::-webkit-details-marker,details.sub>summary::-webkit-details-marker{display:none}
+details.fase>summary{padding:12px 14px;border-radius:10px;background:var(--ink);color:var(--bg);font-family:var(--f-display);font-weight:700}
+details.fase>summary::before,details.sub>summary::before{content:"▸";display:inline-block;margin-right:8px;transition:transform .15s}
+details.fase[open]>summary::before,details.sub[open]>summary::before{transform:rotate(90deg)}
+details.fase>summary>span:first-child,details.sub>summary>span:first-child{margin-right:auto}
+details.fase>.week,details.fase>details{margin-top:8px}
+details.sub{margin-left:10px}
+details.sub>summary{padding:9px 12px;border-radius:9px;background:var(--surface2);border:1px solid var(--line);font-weight:600}
+details.sub>.week{margin-top:6px}
 .stat{display:grid;gap:2px}
 .stat b{font-family:var(--f-display);font-size:1.7rem;line-height:1}
 .dots{display:flex;gap:6px}
@@ -449,15 +459,25 @@ function vTestMenu(app){const n=Object.keys(S.fallos).length,tot=todasPreguntas(
   app.onclick=e=>{if(e.target.closest('[data-fb]'))iniciar({modo:'fallos'});const b=e.target.closest('[data-bl]');if(b)iniciar({id:b.dataset.bl,modo:'bloque'});const v=e.target.closest('[data-vz]');if(v)iniciar({id:v.dataset.vz,modo:'voz'})}}
 
 /* ---------- Plan ---------- */
-function vPlan(app){const P=plan(),h=hoyStr();let html='',fase='',sem='';
-  P.forEach(e=>{if(e.fase!==fase){fase=e.fase;const a=P.filter(x=>x.fase===fase);html+=`<div class="phase" style="margin-top:14px"><span>${fase}</span><span class="mono">${fmt(a[0].fecha,{day:'numeric',month:'short'})} – ${fmt(a[a.length-1].fecha,{day:'numeric',month:'short'})}</span></div>`}
-    const es=hoyStr(e.fecha),dom=e.fecha.getDay()===0;const t=e.t;
-    html+=`<div class="day ${es===h?'hoy':''} ${es<h?'pas':''}"><span class="dt">${fmt(e.fecha)}</span><span>${t?`<b>${t.bloque==='General'?'G':'E'}${t.num}</b> ${esc(t.titulo)}<br><span class="muted" style="font-size:.88rem">${dom?'Día ligero: escucha el podcast del tema.':esc(e.tarea)}</span>`:`<b>Simulacro y repaso</b><br><span class="muted" style="font-size:.88rem">${esc(e.tarea)}</span>`}</span>${t&&!conContenido(t.id)?'<span class="pill">en preparación</span>':t?`<span class="pill ${estadoTema(t.id)[1]}">${estadoTema(t.id)[0]}</span>`:''}</div>`});
+const planAb={};
+document.addEventListener('toggle',e=>{const k=e.target&&e.target.dataset&&e.target.dataset.k;if(k)planAb[k]=e.target.open},true);
+function vPlan(app){const P=plan(),h=hoyStr();
+  const dia=e=>{const es=hoyStr(e.fecha),dom=e.fecha.getDay()===0,t=e.t;
+    return `<div class="day ${es===h?'hoy':''} ${es<h?'pas':''}"><span class="dt">${fmt(e.fecha)}</span><span>${t?`<b>${t.bloque==='General'?'G':'E'}${t.num}</b> ${esc(t.titulo)}<br><span class="muted" style="font-size:.88rem">${dom?'Día ligero: escucha el podcast del tema.':esc(e.tarea)}</span>`:`<b>Simulacro y repaso</b><br><span class="muted" style="font-size:.88rem">${esc(e.tarea)}</span>`}</span>${t&&!conContenido(t.id)?'<span class="pill">en preparación</span>':t?`<span class="pill ${estadoTema(t.id)[1]}">${estadoTema(t.id)[0]}</span>`:''}</div>`};
+  const hoyE=P.find(e=>hoyStr(e.fecha)===h)||P[0];
+  const rango=a=>`${fmt(a[0].fecha,{day:'numeric',month:'short'})} – ${fmt(a[a.length-1].fecha,{day:'numeric',month:'short'})}`;
+  const abierto=(k,def)=>k in planAb?planAb[k]:def;
+  let html='';
+  [...new Set(P.map(e=>e.fase))].forEach(f=>{const a=P.filter(e=>e.fase===f),kf='f:'+f;let cuerpo='';
+    if(a[0].t){['General','Específico'].forEach(bl=>{const sb2=a.filter(e=>e.t&&e.t.bloque===bl);if(!sb2.length)return;const kb=kf+'|'+bl;
+      cuerpo+=`<details class="sub" data-k="${kb}" ${abierto(kb,sb2.includes(hoyE))?'open':''}><summary><span>Bloque ${bl==='General'?'general':'específico'}</span><span class="mono">${rango(sb2)} · ${sb2.length} d</span></summary><div class="week">${sb2.map(dia).join('')}</div></details>`})}
+    else cuerpo=`<div class="week">${a.map(dia).join('')}</div>`;
+    html+=`<details class="fase" data-k="${kf}" ${abierto(kf,a.includes(hoyE))?'open':''}><summary><span>${f}</span><span class="mono">${rango(a)} · ${a.length} d</span></summary>${cuerpo}</details>`});
   app.innerHTML=`<div><h1>Plan de estudio</h1><p class="muted" style="margin-top:6px">Se reparte entre hoy y la fecha del examen según el peso de cada tema. Primero el bloque general, después el específico, una segunda vuelta y, al final, simulacros.</p></div>
   <section class="card" id="cuenta" ${sb?'':'hidden'}><h3>Tu cuenta</h3><p class="muted" style="margin:6px 0 10px">${usuario?'Sesión iniciada. Tu progreso se guarda en la nube y se comparte entre tus dispositivos.':'Entra con tu correo para guardar el progreso y verlo en el móvil, el iPad y el ordenador. Te enviamos un enlace, sin contraseña.'}</p>
   ${usuario?'<button class="btn ghost sm" id="salir">Cerrar sesión</button>':'<div class="row"><input type="email" id="mail" placeholder="tu correo" autocomplete="email" style="flex:1;min-width:200px;font:inherit;padding:9px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)"><button class="btn acc sm" id="enviar">Enviarme el enlace</button></div>'}</section>
   <section class="card"><label class="row"><span><b>Fecha del primer ejercicio</b><br><span class="muted" style="font-size:.88rem">Por ahora usamos el primer día posible. Cámbiala cuando la UGR publique la real.</span></span>
-  <input type="date" id="fex" value="${S.examDate}" min="${hoyStr()}"></label></section><section class="week">${html}</section>
+  <input type="date" id="fex" value="${S.examDate}" min="${hoyStr()}"></label></section><section class="week" style="gap:12px">${html}</section>
   <section class="card flat"><button class="btn ghost sm" id="reset">Borrar mi progreso en este dispositivo</button></section>`;
   const f=$('#fex');f.onchange=()=>{if(f.value){S.examDate=f.value;guardar();toast('Calendario recalculado');render()}};
   const en=$('#enviar');if(en)en.onclick=async()=>{const m=$('#mail').value.trim();if(!m)return;const{error}=await sb.auth.signInWithOtp({email:m,options:{emailRedirectTo:location.origin+location.pathname}});toast(error?'No se pudo enviar el enlace':'Revisa tu correo y abre el enlace')};
