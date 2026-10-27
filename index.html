@@ -247,7 +247,7 @@ function render(){callar();P=null;$('#chip-dias').textContent=diasTxt();const r=
   $('#navb').innerHTML=nav.join('');
   const app=$('#app');app.onclick=null;
   if(T){vTest(app)}else if(tema){vTema(app)}else({hoy:vHoy,temario:vTemario,test:vTestMenu,plan:vPlan,proceso:vProceso})[vista](app);
-  window.scrollTo(0,0)}
+  if(vista==='proceso'&&!tema&&!T)peticiones();window.scrollTo(0,0)}
 function diasTxt(){const d=dd(pf(hoyStr()),pf(S.examDate));return d>0?`faltan ${d} d`:'¡examen!'}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(b){vista=b.dataset.v;tema=null;T=null;render()}});
 
@@ -280,6 +280,7 @@ function vHoy(app){const e=entradaHoy(),t=e.t,tot=progresoTotal(),g=progresoTota
       ${PROC.acciones.map(a=>{const h=a.hecha||S.checks[a.id];return `<label class="check ${h?'done':''}"><input type="checkbox" data-ck="${a.id}" ${h?'checked':''} ${a.hecha?'disabled':''}><span><span class="t">${esc(a.t)}</span><span class="d" style="display:block">${esc(a.d)}</span></span></label>`}).join('')}</div>
   </section>
   ${sb&&!usuario?'<section class="card" style="border-left:6px solid var(--pine)"><h3>Guarda tu progreso</h3><p class="muted" style="margin:6px 0 10px">Entra con tu correo y no perderás nada, ni cambiando de móvil, iPad u ordenador.</p><button class="btn acc sm" data-v="plan">Entrar con mi correo</button></section>':''}
+  ${sb&&usuario?'<section class="card flat"><p class="muted" style="font-size:.9rem">¿Echas algo en falta, como más exámenes u otro temario? <a href="#" data-v="proceso">Pídeselo a Claude</a> en la pestaña Resumen.</p></section>':''}
   <section class="card flat"><p class="muted" style="font-size:.88rem">El primer ejercicio no puede empezar antes del 1 de marzo de 2027. Cuando la UGR publique la fecha real, cámbiala en la pestaña <a href="#" data-v="plan">Plan</a> y el calendario se recalcula solo.</p></section>`}
 document.addEventListener('click',e=>{const a=e.target.closest('[data-ir]');if(a){e.preventDefault();const[i,tb]=a.dataset.ir.split(':');tema=i;tab=tb;if(tb==='test'){iniciar({id:i,modo:'tema'});return}render()}
   const s=e.target.closest('[data-sim]');if(s){iniciar({modo:'sim'})}
@@ -458,6 +459,17 @@ function vTestMenu(app){const n=Object.keys(S.fallos).length,tot=todasPreguntas(
   <div class="row">${Object.values(TEMAS).map(t=>`<button class="btn ghost sm" data-vz="${t.id}">${t.bloque==='General'?'G':'E'}${t.num}</button>`).join('')}</div></div></section>`;
   app.onclick=e=>{if(e.target.closest('[data-fb]'))iniciar({modo:'fallos'});const b=e.target.closest('[data-bl]');if(b)iniciar({id:b.dataset.bl,modo:'bloque'});const v=e.target.closest('[data-vz]');if(v)iniciar({id:v.dataset.vz,modo:'voz'})}}
 
+
+async function peticiones(){const box=$('#pet');if(!box||!sb)return;
+  if(!usuario){box.innerHTML='<h2>Pide algo a Claude</h2><p class="muted" style="margin-top:6px">Entra con tu correo (pestaña Plan) para pedir más exámenes, otro temario o cualquier cosa que eches en falta.</p>';return}
+  box.innerHTML=`<h2>Pide algo a Claude</h2><p class="muted" style="margin:6px 0 10px">Cuéntalo con tus palabras: «quiero más exámenes del tema 3», «busca otro temario», «no entiendo el tema 4»… Se prepara y te contestamos aquí. No es inmediato: puede tardar unos días.</p>
+  <textarea id="pt" rows="3" maxlength="1000" placeholder="¿Qué necesitas?" style="width:100%;font:inherit;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)"></textarea>
+  <div class="row" style="margin-top:8px"><button class="btn acc sm" id="penv">Enviar</button></div><div id="plist" style="margin-top:14px;display:grid;gap:8px"></div>`;
+  const pintar=async()=>{const{data}=await sb.from('peticiones').select('*').order('creada',{ascending:false}).limit(20);
+    $('#plist').innerHTML=(data||[]).map(p=>`<div class="card" style="padding:12px"><div class="row" style="justify-content:space-between"><span class="muted mono" style="font-size:.8rem">${fmt(new Date(p.creada))}</span><span class="pill ${p.estado==='hecha'?'ok':'warn'}">${p.estado}</span></div><p style="margin-top:6px">${esc(p.texto)}</p>${p.respuesta?`<div class="fb ok" style="margin-top:8px"><b>Claude:</b> ${esc(p.respuesta)}</div>`:''}</div>`).join('')||'<p class="muted">Todavía no has pedido nada.</p>'};
+  $('#penv').onclick=async()=>{const t=$('#pt').value.trim();if(t.length<3)return;const{error}=await sb.from('peticiones').insert({texto:t});if(error){toast('No se pudo enviar. Inténtalo de nuevo.');return}$('#pt').value='';toast('Enviado. Te contestaremos aquí.');pintar()};
+  pintar()}
+
 /* ---------- Plan ---------- */
 const planAb={};
 document.addEventListener('toggle',e=>{const k=e.target&&e.target.dataset&&e.target.dataset.k;if(k)planAb[k]=e.target.open},true);
@@ -490,6 +502,7 @@ function vProceso(app){app.innerHTML=`<div><h1>Resumen del proceso</h1><p class=
   <section class="card"><dl class="kv">${PROC.resumen.map(r=>`<dt>${esc(r.k)}</dt><dd>${esc(r.v)}</dd>`).join('')}</dl></section>
   <section class="list"><h2>Los ejercicios</h2>${PROC.ejercicios.map(x=>`<div class="card"><div class="row" style="justify-content:space-between"><h3>${esc(x.n)}</h3><span class="pill">${esc(x.pts)}</span></div><p style="margin-top:6px">${esc(x.d)}</p></div>`).join('')}</section>
   <section class="card"><h2>Cómo se puntúa el primer ejercicio</h2><div class="md">${PROC.puntuacion.map(p=>`<p>${esc(p)}</p>`).join('')}</div></section>
+  <section class="card" id="pet" ${sb?'':'hidden'}></section>
   <section class="card"><h2>Enlaces oficiales</h2><ul style="padding-left:1.1em;margin:8px 0 0;display:grid;gap:6px">${PROC.enlaces.map(l=>`<li><a href="${esc(l.u)}" target="_blank" rel="noopener">${esc(l.t)}</a></li>`).join('')}</ul></section>`}
 
 render();window.addEventListener('load',initNube);if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});
