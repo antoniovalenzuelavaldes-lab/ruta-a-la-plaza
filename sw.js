@@ -1,9 +1,10 @@
-// Guarda la aplicacion para que abra sin conexion. Los mp3 no se guardan: se reproducen en streaming.
-const V = 'ruta-v1';
-self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => c.addAll(['./', 'index.html', 'manifest.json', 'icon-192.png']))); self.skipWaiting(); });
-self.addEventListener('activate', e => e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== V).map(x => caches.delete(x)))).then(() => self.clients.claim())));
-self.addEventListener('fetch', e => {
-  const r = e.request, u = new URL(r.url);
-  if (r.method !== 'GET' || u.origin !== location.origin || u.pathname.endsWith('.mp3') || u.pathname.endsWith('config.js')) return;
-  e.respondWith(fetch(r).then(res => { const cp = res.clone(); caches.open(V).then(c => c.put(r, cp)); return res; }).catch(() => caches.match(r, { ignoreSearch: true })));
+// Service worker de retirada: borra las cachés de la app antigua, se da de baja y lleva a los clientes al sitio nuevo.
+self.addEventListener('install', function () { self.skipWaiting(); });
+self.addEventListener('activate', function (e) {
+  e.waitUntil((async function () {
+    try { var ks = await caches.keys(); await Promise.all(ks.map(function (k) { return caches.delete(k); })); } catch (x) {}
+    try { await self.registration.unregister(); } catch (x) {}
+    try { var cs = await self.clients.matchAll({ type: 'window' }); cs.forEach(function (c) { c.navigate('https://rutaalaplaza.com/'); }); } catch (x) {}
+  })());
 });
+self.addEventListener('fetch', function () {});
